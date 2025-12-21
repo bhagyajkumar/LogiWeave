@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 export default function Console({ logs, onClose }) {
     const endRef = useRef(null)
+    const [debugMode, setDebugMode] = useState(false)
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -49,19 +50,36 @@ export default function Console({ logs, onClose }) {
                         {logs.length} events
                     </span>
                 </div>
-                <button
-                    onClick={onClose}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#94a3b8',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        padding: '4px',
-                    }}
-                >
-                    ✕
-                </button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <button
+                        onClick={() => setDebugMode(!debugMode)}
+                        style={{
+                            padding: '4px 8px',
+                            background: debugMode ? '#22c55e' : '#334155',
+                            border: 'none',
+                            borderRadius: '4px',
+                            color: '#fff',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: 600
+                        }}
+                    >
+                        🐛 Debug {debugMode ? 'ON' : 'OFF'}
+                    </button>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#94a3b8',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            padding: '4px',
+                        }}
+                    >
+                        ✕
+                    </button>
+                </div>
             </div>
 
             {/* Logs Area */}

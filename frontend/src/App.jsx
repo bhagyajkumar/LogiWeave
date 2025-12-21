@@ -12,6 +12,7 @@ import 'reactflow/dist/style.css'
 import BaseNode from './Components/nodes/BaseNode'
 import FlowActions from './FlowActions'
 import JsonView from './JsonView'
+import WorkflowManager from './WorkflowManager'
 import dagre from 'dagre'
 
 const nodeTypes = {
@@ -56,7 +57,7 @@ import FlowRunner from './FlowRunner'
 import Console from './Console'
 
 export default function App() {
-  const [view, setView] = useState('editor') // 'editor' | 'json'
+  const [view, setView] = useState('editor') // 'editor' | 'json' | 'workflows'
   const [logs, setLogs] = useState([])
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
 
@@ -98,19 +99,61 @@ export default function App() {
   const [edges, setEdges] = useState([])
 
   const onEdgesChange = (changes) => {
-    setEdges((eds) => applyEdgeChanges(changes, eds))
+    setEdges((eds) => {
+      const updated = applyEdgeChanges(changes, eds)
+      // Filter out ghost edges (edges pointing to non-existent nodes)
+      return updated.filter(edge => {
+        const sourceExists = nodes.find(n => n.id === edge.source)
+        const targetExists = nodes.find(n => n.id === edge.target)
+        return sourceExists && targetExists
+      })
+    })
   }
 
   const onConnect = (connection) => {
-    setEdges((eds) =>
-      addEdge(
+    setEdges((eds) => {
+      // Check if this is an exec connection
+      const isExecConnection =
+        connection.sourceHandle?.includes('exec') ||
+        connection.targetHandle?.includes('exec')
+
+      if (isExecConnection) {
+        // Remove existing exec connections to the same target handle (exec-in)
+        // or from the same source handle (exec-out)
+        const filteredEdges = eds.filter(edge => {
+          // Remove if same target and target handle (only one exec-in allowed)
+          if (edge.target === connection.target &&
+            edge.targetHandle === connection.targetHandle &&
+            edge.targetHandle?.includes('exec')) {
+            return false
+          }
+          // Remove if same source and source handle (only one exec-out per handle)
+          if (edge.source === connection.source &&
+            edge.sourceHandle === connection.sourceHandle &&
+            edge.sourceHandle?.includes('exec')) {
+            return false
+          }
+          return true
+        })
+
+        return addEdge(
+          {
+            ...connection,
+            type: 'default',
+          },
+          filteredEdges
+        )
+      }
+
+      // Non-exec connections: normal behavior
+      return addEdge(
         {
           ...connection,
           type: 'default',
         },
         eds
       )
-    )
+    })
   }
 
   const onNodesChange = (changes) => {
@@ -135,6 +178,12 @@ export default function App() {
     setNodes([...layoutedNodes])
     setEdges([...layoutedEdges])
   }, [nodes, edges])
+
+  const loadWorkflow = (workflow) => {
+    setNodes(workflow.nodes)
+    setEdges(workflow.edges)
+    setView('editor')
+  }
 
   const handleRun = async () => {
     setIsConsoleOpen(true)
@@ -199,20 +248,52 @@ export default function App() {
             Auto Layout
           </button>
         </div>
-        <button
-          onClick={() => setView(view === 'editor' ? 'json' : 'editor')}
-          style={{
-            padding: '6px 12px',
-            background: view === 'json' ? '#3b82f6' : '#374151',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 4,
-            cursor: 'pointer',
-            fontSize: 14,
-          }}
-        >
-          {view === 'json' ? 'Hide JSON' : 'Show JSON'}
-        </button>
+
+        {/* VIEW SWITCHER */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => setView('editor')}
+            style={{
+              padding: '4px 12px',
+              background: view === 'editor' ? '#3b82f6' : '#374151',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 12
+            }}
+          >
+            Editor
+          </button>
+          <button
+            onClick={() => setView('workflows')}
+            style={{
+              padding: '4px 12px',
+              background: view === 'workflows' ? '#3b82f6' : '#374151',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 12
+            }}
+          >
+            Workflows
+          </button>
+          <button
+            onClick={() => setView('json')}
+            style={{
+              padding: '4px 12px',
+              background: view === 'json' ? '#3b82f6' : '#374151',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 12
+            }}
+          >
+            JSON
+          </button>
+        </div>
       </div>
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
@@ -271,6 +352,14 @@ export default function App() {
         </div>
 
         {/* 🔥 JSON View (Right Pane - Toggleable) */}
+        {view === 'workflows' && (
+          <WorkflowManager
+            onLoad={loadWorkflow}
+            currentNodes={nodes}
+            currentEdges={edges}
+          />
+        )}
+
         {view === 'json' && (
           <div
             style={{

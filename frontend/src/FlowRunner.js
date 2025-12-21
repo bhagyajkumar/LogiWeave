@@ -1,8 +1,9 @@
 export default class FlowRunner {
-    constructor(nodes, edges, logCallback) {
+    constructor(nodes, edges, logCallback, debugMode = false) {
         this.nodes = nodes
         this.edges = edges
         this.log = logCallback || console.log
+        this.debugMode = debugMode
         this.context = {} // Store node outputs: { nodeId: { outputId: value } }
         this.variables = {} // Store variables: { name: value }
         this.isRunning = false
@@ -177,7 +178,9 @@ export default class FlowRunner {
                     const body = inputs['body'] ? JSON.parse(inputs['body']) : undefined
                     const headers = inputs['headers'] ? JSON.parse(inputs['headers']) : {}
 
-                    this.log(`🌐 ${method} ${url}`)
+                    if (this.debugMode) {
+                        this.log(`🌐 ${method} ${url}`)
+                    }
 
                     const response = await fetch(url, {
                         method,
@@ -188,7 +191,9 @@ export default class FlowRunner {
                     outputs['status'] = response.status
                     const text = await response.text()
                     outputs['response'] = text
-                    this.log(`   Status: ${response.status}`)
+                    if (this.debugMode) {
+                        this.log(`   Status: ${response.status}`)
+                    }
                 } catch (e) {
                     // ...
                     throw e
@@ -200,7 +205,9 @@ export default class FlowRunner {
                 const value = inputs['value']
                 if (name) {
                     this.variables[name] = value
-                    this.log(`💾 Set '${name}' = ${value}`)
+                    if (this.debugMode) {
+                        this.log(`💾 Set '${name}' = ${value}`)
+                    }
                 }
             }
             else if (type === 'get variable') {
@@ -263,6 +270,38 @@ export default class FlowRunner {
                     outputs['new_list'] = list.map(item => item[prop])
                 }
             }
+            /* --- STRING OPERATIONS --- */
+            else if (type === 'concatenate') {
+                const a = String(inputs['a'] || '')
+                const b = String(inputs['b'] || '')
+                outputs['result'] = a + b
+            }
+            else if (type === 'split') {
+                const text = String(inputs['text'] || '')
+                const delimiter = String(inputs['delimiter'] || ',')
+                outputs['list'] = text.split(delimiter)
+            }
+            else if (type === 'replace') {
+                const text = String(inputs['text'] || '')
+                const search = String(inputs['search'] || '')
+                const replace = String(inputs['replace'] || '')
+                outputs['result'] = text.replaceAll(search, replace)
+            }
+            else if (type === 'substring') {
+                const text = String(inputs['text'] || '')
+                const start = Number(inputs['start']) || 0
+                const length = inputs['length'] !== undefined ? Number(inputs['length']) : undefined
+                outputs['result'] = length !== undefined ? text.substr(start, length) : text.substring(start)
+            }
+            else if (type === 'to upper') {
+                outputs['result'] = String(inputs['text'] || '').toUpperCase()
+            }
+            else if (type === 'to lower') {
+                outputs['result'] = String(inputs['text'] || '').toLowerCase()
+            }
+            else if (type === 'trim') {
+                outputs['result'] = String(inputs['text'] || '').trim()
+            }
             /* --- LOOPS --- */
             else if (type === 'for loop') {
                 const list = inputs['list'] || []
@@ -282,7 +321,9 @@ export default class FlowRunner {
 
                     // Log ONLY if it's the start (to avoid spam) or debug
                     if (state.index === 0) {
-                        this.log(`🔄 Loop Start: ${state.list.length} terms`)
+                        if (this.debugMode) {
+                            this.log(`🔄 Loop Start: ${state.list.length} terms`)
+                        }
                     }
 
                     state.index++ // Increment for NEXT visit
@@ -296,7 +337,9 @@ export default class FlowRunner {
             /* --- BRANCH --- */
             else if (type === 'branch') {
                 const condition = Boolean(inputs['condition'])
-                this.log(`🔀 Branch: ${condition}`)
+                if (this.debugMode) {
+                    this.log(`🔀 Branch: ${condition}`)
+                }
                 // Logic to redirect flow? 
                 // Branch node usually has two EXEC outputs: 'True' and 'False'
                 // We need to set a flag or handle edge traversal specially for Branch
@@ -312,7 +355,8 @@ export default class FlowRunner {
                 outputs['output'] = val
             }
 
-            if (Object.keys(outputs).length > 0) {
+            // Log detailed result to browser console (for debugging)
+            if (this.debugMode) {
                 console.log(`[${node.id}] Result:`, outputs)
             }
 

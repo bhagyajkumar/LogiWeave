@@ -383,6 +383,164 @@
       }
     ]
   },
+  "stringConcat": {
+    "title": "Concatenate",
+    "category": "String",
+    "inputs": [
+      {
+        "id": "a",
+        "type": "string",
+        "label": "A"
+      },
+      {
+        "id": "b",
+        "type": "string",
+        "label": "B"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "string",
+        "label": "Result"
+      }
+    ]
+  },
+  "stringSplit": {
+    "title": "Split",
+    "category": "String",
+    "inputs": [
+      {
+        "id": "text",
+        "type": "string",
+        "label": "Text"
+      },
+      {
+        "id": "delimiter",
+        "type": "string",
+        "label": "Delimiter",
+        "value": ","
+      }
+    ],
+    "outputs": [
+      {
+        "id": "list",
+        "type": "any",
+        "label": "List"
+      }
+    ]
+  },
+  "stringReplace": {
+    "title": "Replace",
+    "category": "String",
+    "inputs": [
+      {
+        "id": "text",
+        "type": "string",
+        "label": "Text"
+      },
+      {
+        "id": "search",
+        "type": "string",
+        "label": "Search"
+      },
+      {
+        "id": "replace",
+        "type": "string",
+        "label": "Replace"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "string",
+        "label": "Result"
+      }
+    ]
+  },
+  "stringSubstring": {
+    "title": "Substring",
+    "category": "String",
+    "inputs": [
+      {
+        "id": "text",
+        "type": "string",
+        "label": "Text"
+      },
+      {
+        "id": "start",
+        "type": "number",
+        "label": "Start",
+        "value": 0
+      },
+      {
+        "id": "length",
+        "type": "number",
+        "label": "Length"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "string",
+        "label": "Result"
+      }
+    ]
+  },
+  "stringToUpper": {
+    "title": "To Upper",
+    "category": "String",
+    "inputs": [
+      {
+        "id": "text",
+        "type": "string",
+        "label": "Text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "string",
+        "label": "Result"
+      }
+    ]
+  },
+  "stringToLower": {
+    "title": "To Lower",
+    "category": "String",
+    "inputs": [
+      {
+        "id": "text",
+        "type": "string",
+        "label": "Text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "string",
+        "label": "Result"
+      }
+    ]
+  },
+  "stringTrim": {
+    "title": "Trim",
+    "category": "String",
+    "inputs": [
+      {
+        "id": "text",
+        "type": "string",
+        "label": "Text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "string",
+        "label": "Result"
+      }
+    ]
+  },
   "getVariable": {
     "title": "Get Variable",
     "category": "Variables",
