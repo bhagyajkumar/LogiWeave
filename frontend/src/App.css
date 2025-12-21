@@ -1,0 +1,13 @@
+.flow-wrapper {
+  font-family: Arial, Helvetica, sans-serif;
+  padding: 12px;
+}
+.flow-container {
+  height: 70vh;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+h3 {
+  margin-top: 0;
+}

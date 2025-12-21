@@ -1,0 +1,610 @@
+{
+  "start": {
+    "title": "Start",
+    "category": "Event",
+    "draggable": false,
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "exec",
+        "type": "exec",
+        "label": ""
+      }
+    ]
+  },
+  "print": {
+    "title": "Print",
+    "category": "Debug",
+    "inputs": [
+      {
+        "id": "exec-in",
+        "type": "exec",
+        "label": ""
+      },
+      {
+        "id": "text",
+        "type": "string",
+        "label": "Text"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "exec-out",
+        "type": "exec",
+        "label": ""
+      }
+    ]
+  },
+  "branch": {
+    "title": "Branch",
+    "category": "Logic",
+    "inputs": [
+      {
+        "id": "exec-in",
+        "type": "exec",
+        "label": ""
+      },
+      {
+        "id": "condition",
+        "type": "boolean",
+        "label": "Condition"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "true",
+        "type": "exec",
+        "label": "True"
+      },
+      {
+        "id": "false",
+        "type": "exec",
+        "label": "False"
+      }
+    ]
+  },
+  "numberConst": {
+    "title": "Number",
+    "category": "Constants",
+    "inputs": [
+      {
+        "id": "value",
+        "type": "number",
+        "label": "Value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "value",
+        "type": "number",
+        "label": "Value"
+      }
+    ]
+  },
+  "stringConst": {
+    "title": "String",
+    "category": "Constants",
+    "inputs": [
+      {
+        "id": "value",
+        "type": "string",
+        "label": "Value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "value",
+        "type": "string",
+        "label": "Value"
+      }
+    ]
+  },
+  "booleanConst": {
+    "title": "Boolean",
+    "category": "Constants",
+    "inputs": [
+      {
+        "id": "value",
+        "type": "boolean",
+        "label": "Value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "value",
+        "type": "boolean",
+        "label": "Value"
+      }
+    ]
+  },
+  "listConst": {
+    "title": "List",
+    "category": "Constants",
+    "inputs": [
+      {
+        "id": "json",
+        "type": "string",
+        "label": "JSON Array"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "value",
+        "type": "any",
+        "label": "List"
+      }
+    ]
+  },
+  "objectConst": {
+    "title": "Object",
+    "category": "Constants",
+    "inputs": [
+      {
+        "id": "json",
+        "type": "string",
+        "label": "JSON Object"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "value",
+        "type": "any",
+        "label": "Object"
+      }
+    ]
+  },
+  "add": {
+    "title": "Add",
+    "category": "Math",
+    "inputs": [
+      {
+        "id": "a",
+        "type": "number",
+        "label": "A"
+      },
+      {
+        "id": "b",
+        "type": "number",
+        "label": "B"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "number",
+        "label": "Result"
+      }
+    ]
+  },
+  "subtract": {
+    "title": "Subtract",
+    "category": "Math",
+    "inputs": [
+      {
+        "id": "a",
+        "type": "number",
+        "label": "A"
+      },
+      {
+        "id": "b",
+        "type": "number",
+        "label": "B"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "number",
+        "label": "Result"
+      }
+    ],
+    "dynamicInputs": true
+  },
+  "multiply": {
+    "title": "Multiply",
+    "category": "Math",
+    "inputs": [
+      {
+        "id": "a",
+        "type": "number",
+        "label": "A"
+      },
+      {
+        "id": "b",
+        "type": "number",
+        "label": "B"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "number",
+        "label": "Result"
+      }
+    ],
+    "dynamicInputs": true
+  },
+  "divide": {
+    "title": "Divide",
+    "category": "Math",
+    "inputs": [
+      {
+        "id": "a",
+        "type": "number",
+        "label": "A"
+      },
+      {
+        "id": "b",
+        "type": "number",
+        "label": "B"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "number",
+        "label": "Result"
+      }
+    ],
+    "dynamicInputs": true
+  },
+  "greaterThan": {
+    "title": "> (Greater Than)",
+    "category": "Logic",
+    "inputs": [
+      {
+        "id": "a",
+        "type": "number",
+        "label": "A"
+      },
+      {
+        "id": "b",
+        "type": "number",
+        "label": "B"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "boolean",
+        "label": "Result"
+      }
+    ]
+  },
+  "lessThan": {
+    "title": "< (Less Than)",
+    "category": "Logic",
+    "inputs": [
+      {
+        "id": "a",
+        "type": "number",
+        "label": "A"
+      },
+      {
+        "id": "b",
+        "type": "number",
+        "label": "B"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "boolean",
+        "label": "Result"
+      }
+    ]
+  },
+  "equals": {
+    "title": "== (Equals)",
+    "category": "Logic",
+    "inputs": [
+      {
+        "id": "a",
+        "type": "number",
+        "label": "A"
+      },
+      {
+        "id": "b",
+        "type": "number",
+        "label": "B"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "boolean",
+        "label": "Result"
+      }
+    ]
+  },
+  "and": {
+    "title": "AND",
+    "category": "Logic",
+    "inputs": [
+      {
+        "id": "a",
+        "type": "boolean",
+        "label": "A"
+      },
+      {
+        "id": "b",
+        "type": "boolean",
+        "label": "B"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "boolean",
+        "label": "Result"
+      }
+    ],
+    "dynamicInputs": true
+  },
+  "or": {
+    "title": "OR",
+    "category": "Logic",
+    "inputs": [
+      {
+        "id": "a",
+        "type": "boolean",
+        "label": "A"
+      },
+      {
+        "id": "b",
+        "type": "boolean",
+        "label": "B"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "boolean",
+        "label": "Result"
+      }
+    ],
+    "dynamicInputs": true
+  },
+  "not": {
+    "title": "NOT",
+    "category": "Logic",
+    "inputs": [
+      {
+        "id": "value",
+        "type": "boolean",
+        "label": "Value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "type": "boolean",
+        "label": "Result"
+      }
+    ]
+  },
+  "getVariable": {
+    "title": "Get Variable",
+    "category": "Variables",
+    "inputs": [
+      {
+        "id": "name",
+        "type": "string",
+        "label": "Variable Name"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "value",
+        "type": "any",
+        "label": "Value"
+      }
+    ]
+  },
+  "setVariable": {
+    "title": "Set Variable",
+    "category": "Variables",
+    "inputs": [
+      {
+        "id": "exec-in",
+        "type": "exec",
+        "label": ""
+      },
+      {
+        "id": "name",
+        "type": "string",
+        "label": "Variable Name"
+      },
+      {
+        "id": "value",
+        "type": "any",
+        "label": "Value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "exec-out",
+        "type": "exec",
+        "label": ""
+      }
+    ]
+  },
+  "jsonParse": {
+    "title": "JSON Parse",
+    "category": "Data",
+    "inputs": [
+      {
+        "id": "json",
+        "type": "string",
+        "label": "JSON String"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "data",
+        "type": "any",
+        "label": "Data"
+      }
+    ]
+  },
+  "getProperty": {
+    "title": "Get Property",
+    "category": "Data",
+    "inputs": [
+      {
+        "id": "object",
+        "type": "any",
+        "label": "Object"
+      },
+      {
+        "id": "property",
+        "type": "string",
+        "label": "Property"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "value",
+        "type": "any",
+        "label": "Value"
+      }
+    ]
+  },
+  "pickItem": {
+    "title": "Pick Item",
+    "category": "Data",
+    "inputs": [
+      {
+        "id": "list",
+        "type": "any",
+        "label": "List"
+      },
+      {
+        "id": "index",
+        "type": "number",
+        "label": "Index"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "item",
+        "type": "any",
+        "label": "Item"
+      }
+    ]
+  },
+  "mapList": {
+    "title": "Map (Pluck)",
+    "category": "Data",
+    "inputs": [
+      {
+        "id": "list",
+        "type": "any",
+        "label": "List"
+      },
+      {
+        "id": "property",
+        "type": "string",
+        "label": "Property"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "new_list",
+        "type": "any",
+        "label": "New List"
+      }
+    ]
+  },
+  "httpRequest": {
+    "title": "HTTP Request",
+    "category": "Network",
+    "inputs": [
+      {
+        "id": "exec-in",
+        "type": "exec",
+        "label": ""
+      },
+      {
+        "id": "url",
+        "type": "string",
+        "label": "URL"
+      },
+      {
+        "id": "method",
+        "type": "string",
+        "label": "Method"
+      },
+      {
+        "id": "body",
+        "type": "string",
+        "label": "Body"
+      },
+      {
+        "id": "headers",
+        "type": "string",
+        "label": "Headers"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "exec-out",
+        "type": "exec",
+        "label": ""
+      },
+      {
+        "id": "status",
+        "type": "number",
+        "label": "Status"
+      },
+      {
+        "id": "response",
+        "type": "string",
+        "label": "Response"
+      }
+    ],
+    "defaultValues": {
+      "method": "GET",
+      "body": "{}",
+      "headers": "{}"
+    }
+  },
+  "foreach": {
+    "title": "For Loop",
+    "category": "Logic",
+    "inputs": [
+      {
+        "id": "exec-in",
+        "type": "exec",
+        "label": ""
+      },
+      {
+        "id": "list",
+        "type": "any",
+        "label": "List"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "loopBody",
+        "type": "exec",
+        "label": "Loop Body"
+      },
+      {
+        "id": "completed",
+        "type": "exec",
+        "label": "Completed"
+      },
+      {
+        "id": "item",
+        "type": "any",
+        "label": "Item"
+      },
+      {
+        "id": "index",
+        "type": "number",
+        "label": "Index"
+      }
+    ]
+  }
+}
