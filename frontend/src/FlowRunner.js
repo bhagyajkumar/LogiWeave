@@ -103,7 +103,10 @@ export default class FlowRunner {
             if (sourceNode) {
                 // Check if source is "Pure" (no exec inputs)
                 // Pure nodes must be re-executed every time to ensure fresh data (e.g. inside loops)
-                const isPure = !sourceNode.data.inputs?.some(i => i.type === 'exec')
+                // Exception: Subflow Start nodes are populated by the caller and should not re-execute on pull.
+                const isPure = !sourceNode.data.inputs?.some(i => i.type === 'exec') &&
+                    sourceNode.data.title.toLowerCase() !== 'subflow start' &&
+                    sourceNode.id !== 'start'
 
                 // Check if we need to execute (Missing value OR Pure node)
                 if (isPure || !this.context[sourceNodeId] || this.context[sourceNodeId][sourceHandleId] === undefined) {
@@ -350,9 +353,141 @@ export default class FlowRunner {
             }
             /* --- UTILS --- */
             else if (type === 'print' || type === 'log') {
-                const val = inputs['text'] || inputs['value'] || inputs['message']
+                const val = inputs['text'] !== undefined ? inputs['text'] : (inputs['value'] !== undefined ? inputs['value'] : inputs['message'])
                 this.log(`🖨️ ${val}`)
                 outputs['output'] = val
+            }
+
+            /* --- FLOW --- */
+            else if (type === 'subflow start') {
+                // Subflow start node acts like a parameter bridge.
+                // Its outputs are already populated by the caller (Subflow Call).
+                // We must preserve them.
+                outputs = this.context[node.id] || {}
+
+                if (this.debugMode) {
+                    this.log(`🏁 Subflow Start: ${inputs['name']}`)
+                }
+            }
+            else if (type === 'subflow return') {
+                // Subflow return node acts as the end of the subflow.
+                // It collects inputs and makes them available to the caller.
+                if (this.debugMode) {
+                    this.log(`↩ Subflow Return reached`)
+                }
+                // Store resolved inputs in outputs so they reach this.context
+                Object.assign(outputs, inputs)
+            }
+            else if (type === 'subflow call') {
+                const targetName = inputs['name']
+                const subflowStartNode = this.nodes.find(n =>
+                    n.data.title.toLowerCase() === 'subflow start' &&
+                    n.data.inputs.find(i => i.id === 'name')?.value === targetName
+                )
+
+                if (!subflowStartNode) {
+                    throw new Error(`Subflow not found: ${targetName}`)
+                }
+
+                if (this.debugMode) {
+                    this.log(`📞 Calling Subflow: ${targetName}`)
+                }
+
+                // 1. Prepare subflow inputs (transfer call inputs to start node outputs)
+                const subflowContext = {}
+                const startOutputs = {}
+
+                // Map call site data inputs to subflow start data outputs by index or name
+                // Usually it's better to map by label/id if they match, but here we can try matching by index for simplicity 
+                // or just matching the dynamic IDs if they were kept consistent (which they aren't).
+                // Let's match by index for data pins (excluding exec).
+                const callInputs = node.data.inputs.filter(i => i.type !== 'exec' && i.id !== 'name')
+                const startOutputsDef = subflowStartNode.data.outputs.filter(o => o.type !== 'exec')
+
+                for (let i = 0; i < callInputs.length; i++) {
+                    const callInputId = callInputs[i].id
+                    const value = inputs[callInputId] // Already resolved in executeNode
+
+                    if (startOutputsDef[i]) {
+                        startOutputs[startOutputsDef[i].id] = value
+                    }
+                }
+
+                // Set the context for the subflow start node
+                this.context[subflowStartNode.id] = startOutputs
+
+                // 2. Execute Subflow
+                let subNode = subflowStartNode
+                let subRunning = true
+                let lastReturnNode = null
+
+                const firstEdge = this.edges.find(e => e.source === subflowStartNode.id && e.sourceHandle === 'exec')
+                if (firstEdge) {
+                    subNode = this.getNode(firstEdge.target)
+                    while (subNode && subRunning && this.isRunning) {
+                        await this.executeNode(subNode)
+
+                        // Check if we hit a return node
+                        if (subNode.data.title.toLowerCase() === 'subflow return') {
+                            lastReturnNode = subNode
+                            subRunning = false
+                            break
+                        }
+
+                        const outgoingEdges = this.edges.filter(e => e.source === subNode.id)
+                        let validHandle = 'exec-out'
+
+                        // Copy-paste simplified logic from run()
+                        if (subNode.data.title.toLowerCase() === 'branch') {
+                            const result = this.context[subNode.id]?.condition_result
+                            validHandle = result ? 'true' : 'false'
+                        } else if (subNode.data.title.toLowerCase() === 'for loop') {
+                            const state = this.loopStates[subNode.id]
+                            if (state && state.active) {
+                                validHandle = 'loopBody'
+                                this.returnStack.push(subNode)
+                            } else {
+                                validHandle = 'completed'
+                            }
+                        }
+
+                        const nextEdge = outgoingEdges.find(e =>
+                            (e.sourceHandle === validHandle || e.sourceHandle === 'exec') &&
+                            this.getNode(e.target)
+                        )
+
+                        if (nextEdge) {
+                            subNode = this.getNode(nextEdge.target)
+                        } else if (this.returnStack.length > 0) {
+                            subNode = this.returnStack.pop()
+                        } else {
+                            subNode = null // End of subflow
+                        }
+                    }
+                }
+
+                // 3. Map return values back to call site outputs (by index)
+                if (lastReturnNode) {
+                    const callOutputsDef = node.data.outputs.filter(o => o.type !== 'exec')
+                    const returnInputsDef = lastReturnNode.data.inputs.filter(i => i.type !== 'exec')
+
+                    const returnValues = this.context[lastReturnNode.id] || {}
+                    const contextOutputs = {}
+
+                    for (let i = 0; i < returnInputsDef.length; i++) {
+                        const returnInputId = returnInputsDef[i].id
+                        const value = returnValues[returnInputId]
+
+                        if (callOutputsDef[i]) {
+                            contextOutputs[callOutputsDef[i].id] = value
+                        }
+                    }
+                    outputs = contextOutputs
+                }
+
+                if (this.debugMode) {
+                    this.log(`↩ Returned from Subflow: ${targetName}`)
+                }
             }
 
             // Log detailed result to browser console (for debugging)

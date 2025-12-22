@@ -764,5 +764,62 @@
         "label": "Index"
       }
     ]
+  },
+  "subflowStart": {
+    "title": "Subflow Start",
+    "category": "Flow",
+    "inputs": [
+      {
+        "id": "name",
+        "type": "string",
+        "label": "Subflow Name"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "exec",
+        "type": "exec",
+        "label": "Begin"
+      }
+    ],
+    "dynamicOutputs": true
+  },
+  "subflowCall": {
+    "title": "Subflow Call",
+    "category": "Flow",
+    "inputs": [
+      {
+        "id": "exec-in",
+        "type": "exec",
+        "label": ""
+      },
+      {
+        "id": "name",
+        "type": "string",
+        "label": "Target Subflow"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "exec-out",
+        "type": "exec",
+        "label": ""
+      }
+    ],
+    "dynamicInputs": true,
+    "dynamicOutputs": true
+  },
+  "subflowReturn": {
+    "title": "Subflow Return",
+    "category": "Flow",
+    "inputs": [
+      {
+        "id": "exec-in",
+        "type": "exec",
+        "label": ""
+      }
+    ],
+    "outputs": [],
+    "dynamicInputs": true
   }
 }

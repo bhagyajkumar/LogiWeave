@@ -5,6 +5,7 @@ const PIN_COLORS = {
   number: '#22c55e',
   string: '#3b82f6',
   boolean: '#facc15',
+  any: '#8b5cf6', // Purple for any/dynamic
 }
 
 export default function BaseNode({ data, id, isConnectable }) {
@@ -25,16 +26,82 @@ export default function BaseNode({ data, id, isConnectable }) {
       nodes.map((node) => {
         if (node.id === id) {
           const currentInputs = node.data.inputs || []
-          const firstInput = currentInputs.find((i) => i.type !== 'exec')
-          const type = firstInput ? firstInput.type : 'number'
-          const label = `In ${currentInputs.length + 1}`
+          const isSubflowNode = ['subflow start', 'subflow call', 'subflow return'].includes(node.data.title.toLowerCase())
+          const type = isSubflowNode ? 'any' : (firstInput ? firstInput.type : 'number')
+
+          // 🔥 Special logic for Subflow Call: default value is 5
+          const isSubflowCall = node.data.title.toLowerCase() === 'subflow call'
+          const defaultValue = isSubflowCall ? 5 : (type === 'number' ? 0 : '')
+
+          const dataInputsCount = currentInputs.filter(i => i.type !== 'exec' && i.id !== 'name').length
+          const label = `In ${dataInputsCount + 1}`
           const newId = `${type}-${crypto.randomUUID().slice(0, 4)}`
 
           return {
             ...node,
             data: {
               ...node.data,
-              inputs: [...currentInputs, { id: newId, type, label, value: type === 'number' ? 0 : '' }],
+              inputs: [...currentInputs, { id: newId, type, label, value: defaultValue }],
+            },
+          }
+        }
+        return node
+      })
+    )
+  }
+
+  const handleAddOutput = () => {
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        if (node.id === id) {
+          const currentOutputs = node.data.outputs || []
+          const isSubflowNode = ['subflow start', 'subflow call', 'subflow return'].includes(node.data.title.toLowerCase())
+          const firstOutput = currentOutputs.find((o) => o.type !== 'exec')
+          const type = isSubflowNode ? 'any' : (firstOutput ? firstOutput.type : 'any')
+
+          const dataOutputsCount = currentOutputs.filter(o => o.type !== 'exec').length
+          const label = `Out ${dataOutputsCount + 1}`
+          const newId = `${type}-${crypto.randomUUID().slice(0, 4)}`
+
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              outputs: [...currentOutputs, { id: newId, type, label }],
+            },
+          }
+        }
+        return node
+      })
+    )
+  }
+
+  const handleRemoveInput = (inputId) => {
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        if (node.id === id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              inputs: node.data.inputs.filter((i) => i.id !== inputId),
+            },
+          }
+        }
+        return node
+      })
+    )
+  }
+
+  const handleRemoveOutput = (outputId) => {
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        if (node.id === id) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              outputs: node.data.outputs.filter((o) => o.id !== outputId),
             },
           }
         }
@@ -64,6 +131,8 @@ export default function BaseNode({ data, id, isConnectable }) {
 
 
   const hasExec = execInputs.length > 0 || execOutputs.length > 0
+  const bodyPaddingTop = Math.max(50, 20 + (execOutputs.length * 30))
+  const handleBaseTop = 36 + bodyPaddingTop + 8 // Header (~36px) + Dynamic Padding + Half-row adjustment
 
   return (
     <div
@@ -129,25 +198,46 @@ export default function BaseNode({ data, id, isConnectable }) {
           {dataInputs.map((input, index) => (
             <div
               key={input.id}
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}
+              className="nodrag"
+              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, minHeight: 24 }}
             >
               <Handle
                 id={input.id}
                 type="target"
                 position={Position.Left}
-                isConnectable={isConnectable}
+                isConnectable={true}
+                className="nodrag"
                 style={{
                   position: 'absolute',
                   left: -24,
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  background: PIN_COLORS[input.type],
-                  width: 10,
-                  height: 10,
-                  zIndex: 10,
+                  background: PIN_COLORS[input.type] || '#8b5cf6',
+                  width: 16,
+                  height: 16,
+                  zIndex: 1000,
+                  border: '2px solid #1f2937',
+                  cursor: 'crosshair',
+                  pointerEvents: 'all',
                 }}
               />
               <span style={{ fontSize: 12 }}>{input.label}</span>
+              {data.dynamicInputs && index > 1 && ( // Only allow removing if it's a dynamic node and not the first mandatory inputs
+                <button
+                  className="nodrag"
+                  onClick={() => handleRemoveInput(input.id)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#9ca3af',
+                    cursor: 'pointer',
+                    fontSize: 10,
+                    padding: '0 2px',
+                  }}
+                >
+                  ×
+                </button>
+              )}
               {(input.type === 'number' || input.type === 'string') && (
                 <input
                   type={input.type === 'number' ? 'number' : 'text'}
@@ -202,27 +292,67 @@ export default function BaseNode({ data, id, isConnectable }) {
           {dataOutputs.map((output) => (
             <div
               key={output.id}
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6 }}
+              className="nodrag"
+              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, minHeight: 24 }}
             >
+              {data.dynamicOutputs && output.type !== 'exec' && (
+                <button
+                  className="nodrag"
+                  onClick={() => handleRemoveOutput(output.id)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#9ca3af',
+                    cursor: 'pointer',
+                    fontSize: 10,
+                    padding: '0 2px',
+                  }}
+                >
+                  ×
+                </button>
+              )}
               <span style={{ fontSize: 12 }}>{output.label}</span>
               <Handle
                 id={output.id}
                 type="source"
                 position={Position.Right}
-                isConnectable={isConnectable}
+                isConnectable={true}
+                className="nodrag"
                 style={{
                   position: 'absolute',
                   right: -24,
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  background: PIN_COLORS[output.type],
-                  width: 10,
-                  height: 10,
-                  zIndex: 10,
+                  background: PIN_COLORS[output.type] || '#8b5cf6',
+                  width: 16,
+                  height: 16,
+                  zIndex: 1000,
+                  border: '2px solid #1f2937',
+                  cursor: 'crosshair',
+                  pointerEvents: 'all',
                 }}
               />
             </div>
           ))}
+
+          {data.dynamicOutputs && (
+            <div
+              onClick={handleAddOutput}
+              style={{
+                fontSize: 10,
+                color: '#9ca3af',
+                cursor: 'pointer',
+                padding: '2px 6px',
+                border: '1px dashed #4b5563',
+                borderRadius: 4,
+                textAlign: 'center',
+                marginTop: 4,
+                userSelect: 'none',
+              }}
+            >
+              + Add Output
+            </div>
+          )}
         </div>
       </div>
 
@@ -235,12 +365,13 @@ export default function BaseNode({ data, id, isConnectable }) {
             position={Position.Left}
             style={{
               position: 'absolute',
-              left: -6,
+              left: -8,
               top: 52,
               background: '#ffffff',
-              width: 12,
-              height: 12,
-              zIndex: 20, // 🔥 Above data pins
+              width: 16, // 🔥 Larger
+              height: 16,
+              zIndex: 101, // 🔥 Above data pins
+              border: '3px solid #111827',
             }}
           />
         )
@@ -256,12 +387,13 @@ export default function BaseNode({ data, id, isConnectable }) {
             position={Position.Right}
             style={{
               position: 'absolute',
-              right: -6,
+              right: -8,
               top: 52 + (index * 30), // 🔥 Matches label spacing
               background: '#ffffff',
-              width: 12,
-              height: 12,
-              zIndex: 20, // 🔥 Above data pins
+              width: 16,
+              height: 16,
+              zIndex: 101, // 🔥 Above data pins
+              border: '3px solid #111827',
             }}
           />
         ))
@@ -284,6 +416,7 @@ export default function BaseNode({ data, id, isConnectable }) {
           <div key={o.id} style={{ fontSize: 12, height: 14 }}>{o.label}</div> // Fixed height for alignment
         ))}
       </div>
+
     </div >
   )
 }

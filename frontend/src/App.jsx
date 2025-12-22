@@ -110,6 +110,19 @@ export default function App() {
     })
   }
 
+  const isValidConnection = useCallback((connection) => {
+    // 1. Get handles
+    const sourceHandle = connection.sourceHandle || ''
+    const targetHandle = connection.targetHandle || ''
+
+    // 2. Determine types
+    const isSourceExec = sourceHandle.includes('exec')
+    const isTargetExec = targetHandle.includes('exec')
+
+    // 3. Strict separation: Exec connects to Exec, Data connects to Data
+    return isSourceExec === isTargetExec
+  }, [])
+
   const onConnect = (connection) => {
     setEdges((eds) => {
       // Check if this is an exec connection
@@ -337,6 +350,7 @@ export default function App() {
               onEdgesChange={onEdgesChange}
               onNodesDelete={onNodesDelete}
               onConnect={onConnect}
+              isValidConnection={isValidConnection}
               fitView
             >
               <Background />

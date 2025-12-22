@@ -11,6 +11,7 @@ export function createNodeFromTemplate(key, template, position) {
       title: template.title,
       deletable: key !== 'start', // 🔥 Pass to component for UI
       dynamicInputs: template.dynamicInputs,
+      dynamicOutputs: template.dynamicOutputs, // 🔥 Added
 
       // 🔥 CRITICAL: inputs must be copied
       inputs: template.inputs
@@ -18,6 +19,7 @@ export function createNodeFromTemplate(key, template, position) {
           id: input.id,
           type: input.type,
           label: input.label,
+          value: input.value, // 🔥 Added
         }))
         : [],
 
@@ -27,6 +29,7 @@ export function createNodeFromTemplate(key, template, position) {
           id: output.id,
           type: output.type,
           label: output.label,
+          value: output.value, // 🔥 Added
         }))
         : [],
     },
