@@ -115,7 +115,27 @@ export default function Console({ logs, onClose }) {
                         <span style={{ color: '#475569', marginRight: '8px', fontSize: '11px' }}>
                             {new Date().toLocaleTimeString()}
                         </span>
-                        {log}
+                        {log.startsWith('__IMG__:') ? (
+                            <div style={{ marginTop: '4px' }}>
+                                <img
+                                    src={log.replace('__IMG__:', '')}
+                                    alt="Logged attachment"
+                                    style={{
+                                        maxWidth: '200px',
+                                        maxHeight: '200px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #334155',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)'
+                                    }}
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.innerText = '❌ Failed to load image: ' + log.replace('__IMG__:', '');
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            log
+                        )}
                     </div>
                 ))}
                 <div ref={endRef} />

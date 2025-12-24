@@ -1,23 +1,20 @@
+import React, { useState } from 'react'
 import { Handle, Position, useReactFlow } from 'reactflow'
+import NodeHeader from './parts/NodeHeader'
+import NodeInputRow from './parts/NodeInputRow'
+import NodeOutputRow from './parts/NodeOutputRow'
+import InspectorPopup from './parts/InspectorPopup'
 
-const PIN_COLORS = {
-  exec: '#ffffff',
-  number: '#22c55e',
-  string: '#3b82f6',
-  boolean: '#facc15',
-  any: '#8b5cf6', // Purple for any/dynamic
-}
-
-export default function BaseNode({ data, id, isConnectable }) {
-  const execInputs = data.inputs?.filter(i => i.type === 'exec') || []
-  const dataInputs = data.inputs?.filter(i => i.type !== 'exec') || []
-
-  const execOutputs = data.outputs?.filter(o => o.type === 'exec') || []
-  const dataOutputs = data.outputs?.filter(o => o.type !== 'exec') || []
+export default function BaseNode({ data, id }) {
+  const [inspectingOutput, setInspectingOutput] = useState(null)
   const { setNodes } = useReactFlow()
 
-  const handleDelete = (e) => {
-    e.stopPropagation() // prevent drag/select
+  const execInputs = data.inputs?.filter(i => i.type === 'exec') || []
+  const dataInputs = data.inputs?.filter(i => i.type !== 'exec') || []
+  const execOutputs = data.outputs?.filter(o => o.type === 'exec') || []
+  const dataOutputs = data.outputs?.filter(o => o.type !== 'exec') || []
+
+  const handleDelete = () => {
     setNodes((nodes) => nodes.filter((n) => n.id !== id))
   }
 
@@ -27,9 +24,9 @@ export default function BaseNode({ data, id, isConnectable }) {
         if (node.id === id) {
           const currentInputs = node.data.inputs || []
           const isSubflowNode = ['subflow start', 'subflow call', 'subflow return'].includes(node.data.title.toLowerCase())
+          const firstInput = currentInputs.find((i) => i.type !== 'exec' && i.id !== 'name')
           const type = isSubflowNode ? 'any' : (firstInput ? firstInput.type : 'number')
 
-          // 🔥 Special logic for Subflow Call: default value is 5
           const isSubflowCall = node.data.title.toLowerCase() === 'subflow call'
           const defaultValue = isSubflowCall ? 5 : (type === 'number' ? 0 : '')
 
@@ -129,11 +126,6 @@ export default function BaseNode({ data, id, isConnectable }) {
     )
   }
 
-
-  const hasExec = execInputs.length > 0 || execOutputs.length > 0
-  const bodyPaddingTop = Math.max(50, 20 + (execOutputs.length * 30))
-  const handleBaseTop = 36 + bodyPaddingTop + 8 // Header (~36px) + Dynamic Padding + Half-row adjustment
-
   return (
     <div
       style={{
@@ -143,51 +135,27 @@ export default function BaseNode({ data, id, isConnectable }) {
         borderRadius: 10,
         minWidth: 240,
         minHeight: 90,
-        border: '1px solid #374151',
-        boxShadow: '0 15px 30px rgba(0,0,0,0.35)',
+        border: data.isExecuting ? '2px solid #3b82f6' : '1px solid #374151',
+        boxShadow: data.isExecuting
+          ? '0 0 20px rgba(59, 130, 246, 0.6)'
+          : '0 15px 30px rgba(0,0,0,0.35)',
+        animation: data.isExecuting ? 'nodeHighlight 2s infinite' : 'none',
+        transition: 'all 0.2s ease-in-out',
       }}
     >
-      {/* HEADER */}
-      <div
-        style={{
-          padding: '8px 12px',
-          background: '#111827',
-          borderTopLeftRadius: 10,
-          borderTopRightRadius: 10,
-          fontSize: 14,
-          fontWeight: 600,
-          cursor: 'move',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <span>{data.title}</span>
-        {data.deletable !== false && (
-          <button
-            className="nodrag"
-            onClick={handleDelete}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#ef4444',
-              cursor: 'pointer',
-              padding: '0 4px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              lineHeight: 1,
-            }}
-          >
-            ×
-          </button>
-        )}
-      </div>
+      <NodeHeader
+        title={data.title}
+        isBreakpoint={data.isBreakpoint}
+        onToggleBreakpoint={data.onToggleBreakpoint}
+        onDelete={handleDelete}
+        deletable={data.deletable}
+      />
 
       {/* BODY */}
       <div
         style={{
           padding: '12px',
-          paddingTop: Math.max(50, 20 + (execOutputs.length * 30)), // 🔥 Dynamic padding based on exec outputs
+          paddingTop: Math.max(50, 20 + (execOutputs.length * 30)),
           display: 'flex',
           justifyContent: 'space-between',
           gap: 20,
@@ -196,68 +164,13 @@ export default function BaseNode({ data, id, isConnectable }) {
         {/* LEFT SIDE (DATA INPUTS) */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {dataInputs.map((input, index) => (
-            <div
+            <NodeInputRow
               key={input.id}
-              className="nodrag"
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, minHeight: 24 }}
-            >
-              <Handle
-                id={input.id}
-                type="target"
-                position={Position.Left}
-                isConnectable={true}
-                className="nodrag"
-                style={{
-                  position: 'absolute',
-                  left: -24,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: PIN_COLORS[input.type] || '#8b5cf6',
-                  width: 16,
-                  height: 16,
-                  zIndex: 1000,
-                  border: '2px solid #1f2937',
-                  cursor: 'crosshair',
-                  pointerEvents: 'all',
-                }}
-              />
-              <span style={{ fontSize: 12 }}>{input.label}</span>
-              {data.dynamicInputs && index > 1 && ( // Only allow removing if it's a dynamic node and not the first mandatory inputs
-                <button
-                  className="nodrag"
-                  onClick={() => handleRemoveInput(input.id)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#9ca3af',
-                    cursor: 'pointer',
-                    fontSize: 10,
-                    padding: '0 2px',
-                  }}
-                >
-                  ×
-                </button>
-              )}
-              {(input.type === 'number' || input.type === 'string') && (
-                <input
-                  type={input.type === 'number' ? 'number' : 'text'}
-                  value={input.value ?? ''}
-                  onChange={(e) => handleInputChange(input.id, e.target.value)}
-                  className="nodrag"
-                  style={{
-                    marginLeft: 8,
-                    background: '#111827',
-                    border: '1px solid #4b5563',
-                    color: '#ffffff',
-                    fontSize: 10,
-                    padding: '2px 4px',
-                    borderRadius: 4,
-                    width: 60,
-                    outline: 'none',
-                  }}
-                />
-              )}
-            </div>
+              input={input}
+              onInputChange={handleInputChange}
+              onRemove={handleRemoveInput}
+              showRemove={data.dynamicInputs && index > 1}
+            />
           ))}
 
           {data.dynamicInputs && (
@@ -281,58 +194,16 @@ export default function BaseNode({ data, id, isConnectable }) {
         </div>
 
         {/* RIGHT SIDE (DATA OUTPUTS) */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
-            alignItems: 'flex-end',
-          }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-end' }}>
           {dataOutputs.map((output) => (
-            <div
+            <NodeOutputRow
               key={output.id}
-              className="nodrag"
-              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, minHeight: 24 }}
-            >
-              {data.dynamicOutputs && output.type !== 'exec' && (
-                <button
-                  className="nodrag"
-                  onClick={() => handleRemoveOutput(output.id)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#9ca3af',
-                    cursor: 'pointer',
-                    fontSize: 10,
-                    padding: '0 2px',
-                  }}
-                >
-                  ×
-                </button>
-              )}
-              <span style={{ fontSize: 12 }}>{output.label}</span>
-              <Handle
-                id={output.id}
-                type="source"
-                position={Position.Right}
-                isConnectable={true}
-                className="nodrag"
-                style={{
-                  position: 'absolute',
-                  right: -24,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: PIN_COLORS[output.type] || '#8b5cf6',
-                  width: 16,
-                  height: 16,
-                  zIndex: 1000,
-                  border: '2px solid #1f2937',
-                  cursor: 'crosshair',
-                  pointerEvents: 'all',
-                }}
-              />
-            </div>
+              output={output}
+              executionResult={data.executionResult}
+              onInspect={setInspectingOutput}
+              onRemove={handleRemoveOutput}
+              showRemove={data.dynamicOutputs && output.type !== 'exec'}
+            />
           ))}
 
           {data.dynamicOutputs && (
@@ -356,67 +227,36 @@ export default function BaseNode({ data, id, isConnectable }) {
         </div>
       </div>
 
-      {/* EXEC INPUT (TOP LEFT) */}
-      {
-        execInputs.length > 0 && (
-          <Handle
-            id={execInputs[0].id}
-            type="target"
-            position={Position.Left}
-            style={{
-              position: 'absolute',
-              left: -8,
-              top: 52,
-              background: '#ffffff',
-              width: 16, // 🔥 Larger
-              height: 16,
-              zIndex: 101, // 🔥 Above data pins
-              border: '3px solid #111827',
-            }}
-          />
-        )
-      }
+      {/* EXEC HANDLES & LABELS */}
+      {execInputs.length > 0 && (
+        <Handle
+          id={execInputs[0].id}
+          type="target"
+          position={Position.Left}
+          style={{ position: 'absolute', left: -8, top: 52, background: '#ffffff', width: 16, height: 16, zIndex: 101, border: '3px solid #111827' }}
+        />
+      )}
 
-      {/* EXEC OUTPUTS (ABSOLUTE, SEPARATE SLOTS) */}
-      {
-        execOutputs.map((output, index) => (
-          <Handle
-            key={output.id}
-            id={output.id}
-            type="source"
-            position={Position.Right}
-            style={{
-              position: 'absolute',
-              right: -8,
-              top: 52 + (index * 30), // 🔥 Matches label spacing
-              background: '#ffffff',
-              width: 16,
-              height: 16,
-              zIndex: 101, // 🔥 Above data pins
-              border: '3px solid #111827',
-            }}
-          />
-        ))
-      }
+      {execOutputs.map((output, index) => (
+        <Handle
+          key={output.id}
+          id={output.id}
+          type="source"
+          position={Position.Right}
+          style={{ position: 'absolute', right: -8, top: 52 + (index * 30), background: '#ffffff', width: 16, height: 16, zIndex: 101, border: '3px solid #111827' }}
+        />
+      ))}
 
-      {/* EXEC OUTPUT LABELS */}
-      <div
-        style={{
-          position: 'absolute',
-          right: 18,
-          top: 48, // 🔥 Align with handles
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end', // Right align text
-          gap: 16, // 🔥 Adjusted to match handle spacing (Handles are ~12px height + gap)
-          pointerEvents: 'none'
-        }}
-      >
+      <div style={{ position: 'absolute', right: 18, top: 48, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 16, pointerEvents: 'none' }}>
         {execOutputs.map((o) => (
-          <div key={o.id} style={{ fontSize: 12, height: 14 }}>{o.label}</div> // Fixed height for alignment
+          <div key={o.id} style={{ fontSize: 12, height: 14 }}>{o.label}</div>
         ))}
       </div>
 
-    </div >
+      <InspectorPopup
+        inspectingOutput={inspectingOutput}
+        onClose={() => setInspectingOutput(null)}
+      />
+    </div>
   )
 }

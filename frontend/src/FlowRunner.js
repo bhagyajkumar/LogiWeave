@@ -1,23 +1,66 @@
 export default class FlowRunner {
-    constructor(nodes, edges, logCallback, debugMode = false) {
+    constructor(nodes, edges, logCallback, options = {}) {
         this.nodes = nodes
         this.edges = edges
         this.log = logCallback || console.log
-        this.debugMode = debugMode
-        this.context = {} // Store node outputs: { nodeId: { outputId: value } }
-        this.variables = {} // Store variables: { name: value }
+        this.debugMode = options.debugMode || false
+        this.breakpoints = options.breakpoints || new Set()
+        this.onNodeStart = options.onNodeStart || null
+
+        this.context = {}
+        this.variables = {}
         this.isRunning = false
+        this.isPaused = false
+        this.isStepping = false
+        this.pauseResolver = null
+    }
+
+    async waitForPause(nodeId) {
+        if (!this.isRunning) return // Don't pause if stopped
+
+        const isBreakpoint = this.breakpoints.has(nodeId)
+
+        if (isBreakpoint || this.isStepping) {
+            this.isPaused = true
+            this.isStepping = false // Reset stepping once we pause
+            if (this.onNodeStart) this.onNodeStart(nodeId, true, this.context) // Notify UI we paused
+
+            return new Promise((resolve) => {
+                this.pauseResolver = resolve
+            })
+        }
+
+        if (this.onNodeStart) this.onNodeStart(nodeId, false, this.context)
+        return Promise.resolve()
+    }
+
+    resume() {
+        if (this.pauseResolver) {
+            this.isPaused = false
+            const resolve = this.pauseResolver
+            this.pauseResolver = null
+            resolve()
+        }
+    }
+
+    step() {
+        this.isStepping = true
+        this.resume()
+    }
+
+    stop() {
+        this.isRunning = false
+        this.resume() // Break out of any pause
     }
 
     async run() {
         this.log('🚀 Starting execution...')
         this.isRunning = true
         this.context = {}
-        this.variables = {} // Reset vars on run? Or keep them? Usually reset.
-        this.variables = {} // Store variables: { name: value }
-        this.returnStack = [] // For loops: allow returning to a node
-        this.loopStates = {} // Store loop state: { nodeId: { index, list } }
-        this.executionStack = new Set() // For cycle detection
+        this.variables = {}
+        this.returnStack = []
+        this.loopStates = {}
+        this.executionStack = new Set()
 
         // 1. Find Start Node
         const startNode = this.nodes.find((n) => n.id === 'start')
@@ -30,6 +73,9 @@ export default class FlowRunner {
         let currentNode = startNode
         try {
             while (currentNode && this.isRunning) {
+                // WAIT FOR PAUSE / BREAKPOINT
+                await this.waitForPause(currentNode.id)
+                if (!this.isRunning) break
                 // this.log(`▶ Executing: ${currentNode.data.title} (${currentNode.id})`)
 
                 // Execute the node's logic
@@ -133,7 +179,15 @@ export default class FlowRunner {
     }
 
     async executeNode(node) {
-        if (this.executionStack.has(node.id)) return // Already executing in this stack
+        if (!this.isRunning) return
+        if (this.executionStack.has(node.id)) return
+
+        // For "Pure" nodes that are executed via pull (instead of the main flow loop)
+        // we might want to pause here too. However, the main flow loop handles 
+        // most nodes. Pure nodes are usually background data nodes.
+        // Let's only pause if it's NOT already being tracked by the main runner loop
+        // to avoid double-pausing.
+
         this.executionStack.add(node.id)
 
         try {
@@ -403,6 +457,10 @@ export default class FlowRunner {
                 const val = inputs['text'] !== undefined ? inputs['text'] : (inputs['value'] !== undefined ? inputs['value'] : inputs['message'])
                 this.log(`🖨️ ${val}`)
                 outputs['output'] = val
+            } else if (type === 'print image') {
+                const url = inputs['url']
+                this.log(`__IMG__:${url}`)
+                outputs['url'] = url
             }
 
             /* --- FLOW --- */

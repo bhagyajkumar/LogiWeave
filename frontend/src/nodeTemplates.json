@@ -35,6 +35,29 @@
       }
     ]
   },
+  "imagePrint": {
+    "title": "Print Image",
+    "category": "Debug",
+    "inputs": [
+      {
+        "id": "exec-in",
+        "type": "exec",
+        "label": ""
+      },
+      {
+        "id": "url",
+        "type": "string",
+        "label": "Image URL"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "exec-out",
+        "type": "exec",
+        "label": ""
+      }
+    ]
+  },
   "branch": {
     "title": "Branch",
     "category": "Logic",

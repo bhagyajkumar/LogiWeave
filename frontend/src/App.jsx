@@ -62,6 +62,11 @@ export default function App() {
   const [view, setView] = useState('editor') // 'editor' | 'json' | 'workflows'
   const [logs, setLogs] = useState([])
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
+  const [breakpoints, setBreakpoints] = useState(new Set())
+  const [currentNodeId, setCurrentNodeId] = useState(null)
+  const [activeRunner, setActiveRunner] = useState(null)
+  const [isPaused, setIsPaused] = useState(false)
+  const [executionData, setExecutionData] = useState({})
 
   const [nodes, setNodes] = useState([
     {
@@ -203,12 +208,38 @@ export default function App() {
   const handleRun = async () => {
     setIsConsoleOpen(true)
     setLogs([]) // Clear previous logs
+    setCurrentNodeId(null)
+    setIsPaused(false)
+    setExecutionData({})
 
     const runner = new FlowRunner(nodes, edges, (msg) => {
       setLogs((prev) => [...prev, msg])
+    }, {
+      breakpoints,
+      onNodeStart: (nodeId, paused, context) => {
+        setCurrentNodeId(nodeId)
+        setIsPaused(paused)
+        if (context) setExecutionData({ ...context })
+      }
     })
 
+    setActiveRunner(runner)
     await runner.run()
+    setActiveRunner(null)
+    setCurrentNodeId(null)
+  }
+
+  const handleResume = () => activeRunner?.resume()
+  const handleStep = () => activeRunner?.step()
+  const handleStop = () => activeRunner?.stop()
+
+  const toggleBreakpoint = (nodeId) => {
+    setBreakpoints(prev => {
+      const next = new Set(prev)
+      if (next.has(nodeId)) next.delete(nodeId)
+      else next.add(nodeId)
+      return next
+    })
   }
 
   return (
@@ -345,7 +376,16 @@ export default function App() {
             </div>
 
             <ReactFlow
-              nodes={nodes}
+              nodes={nodes.map(n => ({
+                ...n,
+                data: {
+                  ...n.data,
+                  isExecuting: currentNodeId === n.id,
+                  isBreakpoint: breakpoints.has(n.id),
+                  onToggleBreakpoint: () => toggleBreakpoint(n.id),
+                  executionResult: executionData[n.id]
+                }
+              }))}
               edges={edges}
               nodeTypes={nodeTypes}
               onNodesChange={onNodesChange}
@@ -365,7 +405,116 @@ export default function App() {
           {isConsoleOpen && (
             <Console logs={logs} onClose={() => setIsConsoleOpen(false)} />
           )}
+
+          {/* 🔥 Debugger Controls Overlay */}
+          {activeRunner && (
+            <div style={{
+              position: 'absolute',
+              bottom: isConsoleOpen ? 320 : 20,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              background: '#1f2937',
+              padding: '8px 16px',
+              borderRadius: 12,
+              border: '1px solid #374151',
+              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              zIndex: 1000,
+              transition: 'bottom 0.3s ease'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 8 }}>
+                <div style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: isPaused ? '#f59e0b' : '#22c55e',
+                  animation: !isPaused ? 'pulse 2s infinite' : 'none'
+                }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
+                  {isPaused ? 'PAUSED' : 'RUNNING'}
+                </span>
+              </div>
+
+              <div style={{ height: 20, width: 1, background: '#374151' }} />
+
+              <button
+                onClick={handleResume}
+                disabled={!isPaused}
+                style={{
+                  background: isPaused ? '#3b82f6' : 'transparent',
+                  color: isPaused ? '#fff' : '#4b5563',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: isPaused ? 'pointer' : 'default',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>🚀</span> Resume
+              </button>
+
+              <button
+                onClick={handleStep}
+                disabled={!isPaused}
+                style={{
+                  background: isPaused ? '#8b5cf6' : 'transparent',
+                  color: isPaused ? '#fff' : '#4b5563',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: isPaused ? 'pointer' : 'default',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>↪️</span> Step Over
+              </button>
+
+              <button
+                onClick={handleStop}
+                style={{
+                  background: '#ef4444',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>⏹</span> Stop
+              </button>
+            </div>
+          )}
         </div>
+
+        <style>
+          {`
+            @keyframes pulse {
+              0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+              70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+              100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+            }
+            @keyframes nodeHighlight {
+              0% { border-color: #3b82f6; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+              50% { border-color: #60a5fa; box-shadow: 0 0 15px 5px rgba(59, 130, 246, 0.5); }
+              100% { border-color: #3b82f6; box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+            }
+          `}
+        </style>
 
         {/* 🔥 JSON View (Right Pane - Toggleable) */}
         {view === 'workflows' && (
