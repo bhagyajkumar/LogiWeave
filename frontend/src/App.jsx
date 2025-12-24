@@ -10,6 +10,7 @@ import ReactFlow, {
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import BaseNode from './Components/nodes/BaseNode'
+import HttpRequestNode from './Components/nodes/HttpRequestNode'
 import FlowActions from './FlowActions'
 import JsonView from './JsonView'
 import WorkflowManager from './WorkflowManager'
@@ -17,6 +18,7 @@ import dagre from 'dagre'
 
 const nodeTypes = {
   baseNode: BaseNode,
+  httpRequestNode: HttpRequestNode,
 }
 
 const getLayoutedElements = (nodes, edges, direction = 'LR') => {

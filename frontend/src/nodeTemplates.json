@@ -677,6 +677,7 @@
   "httpRequest": {
     "title": "HTTP Request",
     "category": "Network",
+    "type": "httpRequestNode",
     "inputs": [
       {
         "id": "exec-in",
@@ -694,14 +695,19 @@
         "label": "Method"
       },
       {
-        "id": "body",
+        "id": "params",
         "type": "string",
-        "label": "Body"
+        "label": "Query Params"
       },
       {
         "id": "headers",
         "type": "string",
         "label": "Headers"
+      },
+      {
+        "id": "body",
+        "type": "string",
+        "label": "Body"
       }
     ],
     "outputs": [
@@ -719,12 +725,24 @@
         "id": "response",
         "type": "string",
         "label": "Response"
+      },
+      {
+        "id": "data",
+        "type": "any",
+        "label": "Data"
+      },
+      {
+        "id": "headers",
+        "type": "any",
+        "label": "Headers"
       }
     ],
     "defaultValues": {
       "method": "GET",
-      "body": "{}",
-      "headers": "{}"
+      "url": "",
+      "params": "{}",
+      "headers": "{}",
+      "body": "{}"
     }
   },
   "foreach": {

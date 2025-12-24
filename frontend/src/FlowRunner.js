@@ -176,10 +176,43 @@ export default class FlowRunner {
             else if (type === 'http request') {
                 try {
                     const method = (inputs['method'] || 'GET').toUpperCase()
-                    const url = inputs['url']
-                    // ... rest of http logic
-                    const body = inputs['body'] ? JSON.parse(inputs['body']) : undefined
-                    const headers = inputs['headers'] ? JSON.parse(inputs['headers']) : {}
+                    let url = inputs['url']
+
+                    // 1. Handle Query Params
+                    const paramsInput = inputs['params']
+                    if (paramsInput) {
+                        try {
+                            const params = typeof paramsInput === 'string' ? JSON.parse(paramsInput) : paramsInput
+                            const urlObj = new URL(url)
+                            Object.entries(params).forEach(([key, val]) => {
+                                urlObj.searchParams.append(key, val)
+                            })
+                            url = urlObj.toString()
+                        } catch (e) {
+                            this.log(`⚠️ Query Params Parse Error: ${e.message}`)
+                        }
+                    }
+
+                    // 2. Handle Headers & Body
+                    const bodyInput = inputs['body']
+                    const headersInput = inputs['headers']
+
+                    let body = undefined
+                    if (method !== 'GET') {
+                        body = typeof bodyInput === 'string' ? bodyInput : JSON.stringify(bodyInput)
+                    }
+
+                    let headers = {
+                        'Content-Type': 'application/json'
+                    }
+                    if (headersInput) {
+                        try {
+                            const customHeaders = typeof headersInput === 'string' ? JSON.parse(headersInput) : headersInput
+                            headers = { ...headers, ...customHeaders }
+                        } catch (e) {
+                            this.log(`⚠️ Headers Parse Error: ${e.message}`)
+                        }
+                    }
 
                     if (this.debugMode) {
                         this.log(`🌐 ${method} ${url}`)
@@ -188,17 +221,31 @@ export default class FlowRunner {
                     const response = await fetch(url, {
                         method,
                         headers,
-                        body: method !== 'GET' ? JSON.stringify(body) : undefined
+                        body: method !== 'GET' ? body : undefined
                     })
 
+                    // 3. Capture Results
                     outputs['status'] = response.status
+
+                    const responseHeaders = {}
+                    response.headers.forEach((v, k) => { responseHeaders[k] = v })
+                    outputs['headers'] = responseHeaders
+
                     const text = await response.text()
                     outputs['response'] = text
+
+                    // 4. Auto-parse JSON for 'data' output
+                    try {
+                        outputs['data'] = JSON.parse(text)
+                    } catch (e) {
+                        outputs['data'] = null // Not JSON
+                    }
+
                     if (this.debugMode) {
                         this.log(`   Status: ${response.status}`)
                     }
                 } catch (e) {
-                    // ...
+                    this.log(`❌ HTTP Error: ${e.message}`)
                     throw e
                 }
             }

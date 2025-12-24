@@ -1,7 +1,7 @@
 export function createNodeFromTemplate(key, template, position) {
   return {
     id: crypto.randomUUID(),
-    type: 'baseNode',
+    type: template.type || 'baseNode',
     position,
 
     draggable: template.draggable !== false,
