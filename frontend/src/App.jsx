@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import ReactFlow, {
   Background,
   Controls,
@@ -14,6 +14,9 @@ import HttpRequestNode from './Components/nodes/HttpRequestNode'
 import FlowActions from './FlowActions'
 import JsonView from './JsonView'
 import WorkflowManager from './WorkflowManager'
+import ContextMenu from './Components/ContextMenu'
+import templates from './nodeTemplates.json'
+import { createNodeFromTemplate } from './createNodeFromTemplate'
 import dagre from 'dagre'
 
 const nodeTypes = {
@@ -64,9 +67,13 @@ export default function App() {
   const [isConsoleOpen, setIsConsoleOpen] = useState(false)
   const [breakpoints, setBreakpoints] = useState(new Set())
   const [currentNodeId, setCurrentNodeId] = useState(null)
+  const [activeEdgeId, setActiveEdgeId] = useState(null)
   const [activeRunner, setActiveRunner] = useState(null)
   const [isPaused, setIsPaused] = useState(false)
   const [executionData, setExecutionData] = useState({})
+  const [menu, setMenu] = useState(null)
+
+  const { project } = useReactFlow()
 
   const [nodes, setNodes] = useState([
     {
@@ -205,6 +212,35 @@ export default function App() {
     setView('editor')
   }
 
+  // 🔥 CONTEXT MENU HANDLERS
+  const onPaneContextMenu = useCallback(
+    (event) => {
+      event.preventDefault()
+      const { x, y } = project({
+        x: event.clientX,
+        y: event.clientY,
+      })
+      setMenu({
+        x,
+        y,
+        clientX: event.clientX,
+        clientY: event.clientY,
+      })
+    },
+    [project]
+  )
+
+  const onPaneClick = useCallback(() => setMenu(null), [setMenu])
+
+  const onSpawnNode = useCallback((key, position) => {
+    setNodes((nds) =>
+      nds.concat(
+        createNodeFromTemplate(key, templates[key], position)
+      )
+    )
+    setMenu(null)
+  }, [setNodes])
+
   const handleRun = async () => {
     setIsConsoleOpen(true)
     setLogs([]) // Clear previous logs
@@ -218,8 +254,12 @@ export default function App() {
       breakpoints,
       onNodeStart: (nodeId, paused, context) => {
         setCurrentNodeId(nodeId)
+        setActiveEdgeId(null) // Clear edge when node starts
         setIsPaused(paused)
         if (context) setExecutionData({ ...context })
+      },
+      onEdgeStart: (edgeId) => {
+        setActiveEdgeId(edgeId)
       }
     })
 
@@ -228,6 +268,38 @@ export default function App() {
     setActiveRunner(null)
     setCurrentNodeId(null)
   }
+
+  // 🔥 KEYBOARD SHORTCUTS
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // 1. DELETE SELECTED NODES
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        const selectedNodes = nodes.filter(n => n.selected)
+        if (selectedNodes.length > 0) {
+          onNodesDelete(selectedNodes)
+        }
+      }
+
+      // 2. DUPLICATE SELECTED (CTRL+D)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+        e.preventDefault()
+        const selectedNodes = nodes.filter(n => n.selected)
+        if (selectedNodes.length > 0) {
+          const newNodes = selectedNodes.map(n => ({
+            ...n,
+            id: `${n.type}-${crypto.randomUUID().slice(0, 10)}`,
+            position: { x: n.position.x + 40, y: n.position.y + 40 },
+            selected: false,
+            data: JSON.parse(JSON.stringify(n.data)) // Deep copy to avoid shared references
+          }))
+          setNodes(nds => [...nds, ...newNodes])
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [nodes, onNodesDelete])
 
   const handleResume = () => activeRunner?.resume()
   const handleStep = () => activeRunner?.step()
@@ -386,7 +458,16 @@ export default function App() {
                   executionResult: executionData[n.id]
                 }
               }))}
-              edges={edges}
+              edges={edges.map(e => ({
+                ...e,
+                animated: e.id === activeEdgeId,
+                className: e.id === activeEdgeId ? 'pulse' : '',
+                style: {
+                  stroke: e.id === activeEdgeId ? '#60a5fa' : (e.targetHandle?.includes('exec') ? '#94a3b8' : '#4b5563'),
+                  strokeWidth: 2,
+                  transition: 'all 0.2s'
+                }
+              }))}
               nodeTypes={nodeTypes}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
@@ -394,16 +475,59 @@ export default function App() {
               onConnect={onConnect}
               isValidConnection={isValidConnection}
               fitView
+              selectionOnDrag={true}
+              selectionMode="partial"
+              panOnScroll={true}
+              panOnDrag={[1, 2]}
+              onPaneContextMenu={onPaneContextMenu}
+              onPaneClick={onPaneClick}
             >
               <Background />
               <Controls />
               <MiniMap style={{ background: '#1f2937' }} nodeColor={() => '#374151'} maskColor="rgba(0, 0, 0, 0.4)" />
             </ReactFlow>
+
+            {/* 💡 Empty Canvas Helper */}
+            {nodes.length <= 1 && (
+              <div style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                pointerEvents: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '12px',
+                opacity: 0.6,
+                zIndex: 10
+              }}>
+                <div style={{
+                  padding: '24px 32px',
+                  background: '#1e293b90',
+                  backdropFilter: 'blur(8px)',
+                  border: '2px dashed #334155',
+                  borderRadius: '16px',
+                  color: '#94a3b8',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '28px', marginBottom: '8px' }}>✨ Start Building</div>
+                  <div style={{ fontSize: '16px' }}>Right-click anywhere to add a node</div>
+                  <div style={{ fontSize: '13px', marginTop: '16px', color: '#60a5fa' }}>
+                    Connect nodes to automate your workflow
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <code style={{ fontSize: '11px', background: '#334155', padding: '4px 8px', borderRadius: '4px' }}>Delete to remove</code>
+                  <code style={{ fontSize: '11px', background: '#334155', padding: '4px 8px', borderRadius: '4px' }}>Ctrl+D to duplicate</code>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 🔥 Console (Bottom Pane Overlay) */}
           {isConsoleOpen && (
-            <Console logs={logs} onClose={() => setIsConsoleOpen(false)} />
+            <Console logs={logs} onClear={() => setLogs([])} onClose={() => setIsConsoleOpen(false)} />
           )}
 
           {/* 🔥 Debugger Controls Overlay */}
@@ -536,6 +660,15 @@ export default function App() {
           >
             <JsonView nodes={nodes} edges={edges} onBack={() => setView('editor')} isPanel={true} />
           </div>
+        )}
+
+        {/* 🔥 Custom Context Menu */}
+        {menu && (
+          <ContextMenu
+            {...menu}
+            onClick={onPaneClick}
+            onSpawn={onSpawnNode}
+          />
         )}
       </div>
     </div>

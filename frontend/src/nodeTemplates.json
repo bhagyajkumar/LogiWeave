@@ -75,12 +75,12 @@
     ],
     "outputs": [
       {
-        "id": "true",
+        "id": "exec-true",
         "type": "exec",
         "label": "True"
       },
       {
-        "id": "false",
+        "id": "exec-false",
         "type": "exec",
         "label": "False"
       }
@@ -785,12 +785,12 @@
     ],
     "outputs": [
       {
-        "id": "loopBody",
+        "id": "exec-loopBody",
         "type": "exec",
         "label": "Loop Body"
       },
       {
-        "id": "completed",
+        "id": "exec-completed",
         "type": "exec",
         "label": "Completed"
       },
@@ -803,6 +803,115 @@
         "id": "index",
         "type": "number",
         "label": "Index"
+      }
+    ]
+  },
+  "dictionaryKeys": {
+    "title": "Get Dictionary Keys",
+    "category": "Data",
+    "inputs": [
+      {
+        "id": "dict",
+        "type": "any",
+        "label": "Dictionary"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "keys",
+        "type": "any",
+        "label": "Keys"
+      }
+    ]
+  },
+  "randomInt": {
+    "title": "Random Integer",
+    "category": "Math",
+    "inputs": [
+      {
+        "id": "min",
+        "type": "number",
+        "label": "Min"
+      },
+      {
+        "id": "max",
+        "type": "number",
+        "label": "Max"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "value",
+        "type": "number",
+        "label": "Value"
+      }
+    ]
+  },
+  "randomChoice": {
+    "title": "Random Choice",
+    "category": "Data",
+    "inputs": [
+      {
+        "id": "list",
+        "type": "any",
+        "label": "List"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "item",
+        "type": "any",
+        "label": "Item"
+      }
+    ]
+  },
+  "createMap": {
+    "title": "Create Empty Map",
+    "category": "Data",
+    "inputs": [],
+    "outputs": [
+      {
+        "id": "map",
+        "type": "any",
+        "label": "Map"
+      }
+    ]
+  },
+  "setMapProperty": {
+    "title": "Set Map Property",
+    "category": "Data",
+    "inputs": [
+      {
+        "id": "exec-in",
+        "type": "exec",
+        "label": ""
+      },
+      {
+        "id": "map",
+        "type": "any",
+        "label": "Map"
+      },
+      {
+        "id": "key",
+        "type": "string",
+        "label": "Key"
+      },
+      {
+        "id": "value",
+        "type": "any",
+        "label": "Value"
+      }
+    ],
+    "outputs": [
+      {
+        "id": "exec-out",
+        "type": "exec",
+        "label": ""
+      },
+      {
+        "id": "map",
+        "type": "any",
+        "label": "Map"
       }
     ]
   },

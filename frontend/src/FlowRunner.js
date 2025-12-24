@@ -6,6 +6,7 @@ export default class FlowRunner {
         this.debugMode = options.debugMode || false
         this.breakpoints = options.breakpoints || new Set()
         this.onNodeStart = options.onNodeStart || null
+        this.onEdgeStart = options.onEdgeStart || null
 
         this.context = {}
         this.variables = {}
@@ -90,17 +91,17 @@ export default class FlowRunner {
                 // Special handling for Branch node
                 if (currentNode.data.title.toLowerCase() === 'branch') {
                     const result = this.context[currentNode.id]?.condition_result
-                    validHandle = result ? 'true' : 'false'
+                    validHandle = result ? 'exec-true' : 'exec-false'
                 }
                 // Special handling for For Loop
                 else if (currentNode.data.title.toLowerCase() === 'for loop') {
                     const state = this.loopStates[currentNode.id]
                     if (state && state.active) {
-                        validHandle = 'loopBody'
+                        validHandle = 'exec-loopBody'
                         // Push current node to stack to return to it later
                         this.returnStack.push(currentNode)
                     } else {
-                        validHandle = 'completed'
+                        validHandle = 'exec-completed'
                     }
                 }
 
@@ -112,6 +113,9 @@ export default class FlowRunner {
                 )
 
                 if (executionEdge) {
+                    if (this.onEdgeStart) {
+                        this.onEdgeStart(executionEdge.id)
+                    }
                     currentNode = this.getNode(executionEdge.target)
                 } else if (this.returnStack.length > 0) {
                     // Return to previous node (e.g. Loop)
@@ -374,6 +378,39 @@ export default class FlowRunner {
                     outputs['new_list'] = list.map(item => item[prop])
                 }
             }
+            else if (type === 'get dictionary keys') {
+                const dict = inputs['dict'] || {}
+                outputs['keys'] = Object.keys(dict)
+            }
+            else if (type === 'create empty map' || type === 'create map') {
+                outputs['map'] = {}
+            }
+            else if (type === 'set map property') {
+                const map = inputs['map'] || {}
+                const key = inputs['key']
+                const value = inputs['value']
+
+                // Create a new reference to avoid side-effects in pure execution paths
+                const newMap = Array.isArray(map) ? [...map] : { ...map }
+                if (key) {
+                    newMap[key] = value
+                }
+                outputs['map'] = newMap
+            }
+            else if (type === 'random choice') {
+                const list = inputs['list']
+                if (Array.isArray(list) && list.length > 0) {
+                    outputs['item'] = list[Math.floor(Math.random() * list.length)]
+                } else {
+                    outputs['item'] = null
+                }
+            }
+            /* --- MATH --- */
+            else if (type === 'random integer') {
+                const min = Number(inputs['min'] || 0)
+                const max = Number(inputs['max'] || 100)
+                outputs['value'] = Math.floor(Math.random() * (max - min + 1)) + min
+            }
             /* --- STRING OPERATIONS --- */
             else if (type === 'concatenate') {
                 const a = String(inputs['a'] || '')
@@ -499,13 +536,8 @@ export default class FlowRunner {
                 }
 
                 // 1. Prepare subflow inputs (transfer call inputs to start node outputs)
-                const subflowContext = {}
                 const startOutputs = {}
 
-                // Map call site data inputs to subflow start data outputs by index or name
-                // Usually it's better to map by label/id if they match, but here we can try matching by index for simplicity 
-                // or just matching the dynamic IDs if they were kept consistent (which they aren't).
-                // Let's match by index for data pins (excluding exec).
                 const callInputs = node.data.inputs.filter(i => i.type !== 'exec' && i.id !== 'name')
                 const startOutputsDef = subflowStartNode.data.outputs.filter(o => o.type !== 'exec')
 
@@ -542,17 +574,17 @@ export default class FlowRunner {
                         const outgoingEdges = this.edges.filter(e => e.source === subNode.id)
                         let validHandle = 'exec-out'
 
-                        // Copy-paste simplified logic from run()
+                        // Logic to find next node
                         if (subNode.data.title.toLowerCase() === 'branch') {
                             const result = this.context[subNode.id]?.condition_result
-                            validHandle = result ? 'true' : 'false'
+                            validHandle = result ? 'exec-true' : 'exec-false'
                         } else if (subNode.data.title.toLowerCase() === 'for loop') {
                             const state = this.loopStates[subNode.id]
                             if (state && state.active) {
-                                validHandle = 'loopBody'
+                                validHandle = 'exec-loopBody'
                                 this.returnStack.push(subNode)
                             } else {
-                                validHandle = 'completed'
+                                validHandle = 'exec-completed'
                             }
                         }
 
@@ -562,6 +594,9 @@ export default class FlowRunner {
                         )
 
                         if (nextEdge) {
+                            if (this.onEdgeStart) {
+                                this.onEdgeStart(nextEdge.id)
+                            }
                             subNode = this.getNode(nextEdge.target)
                         } else if (this.returnStack.length > 0) {
                             subNode = this.returnStack.pop()

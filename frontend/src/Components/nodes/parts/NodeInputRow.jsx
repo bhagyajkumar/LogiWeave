@@ -40,6 +40,7 @@ export default function NodeInputRow({
                     cursor: 'crosshair',
                     pointerEvents: 'all',
                 }}
+                title={`Input: ${input.type}`}
             />
             <span style={{ fontSize: 12 }}>{input.label}</span>
             {showRemove && (

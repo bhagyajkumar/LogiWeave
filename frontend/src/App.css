@@ -1,13 +1,39 @@
-.flow-wrapper {
-  font-family: Arial, Helvetica, sans-serif;
-  padding: 12px;
-}
-.flow-container {
-  height: 70vh;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+.react-flow__connection-path {
+  stroke: #60a5fa;
+  stroke-width: 2;
 }
 
-h3 {
-  margin-top: 0;
+.react-flow__edge-path.pulse {
+  stroke-dasharray: 10;
+  animation: dashdraw 0.5s linear infinite;
+  stroke: #60a5fa;
+  stroke-width: 3;
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 20;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.react-flow__selection {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid #3b82f6;
+  border-radius: 4px;
+}
+
+.react-flow__handle {
+  width: 8px;
+  height: 8px;
+  background: #475569;
+  border: 2px solid #1e293b;
+  transition: all 0.2s;
+}
+
+.react-flow__handle:hover {
+  background: #60a5fa;
+  transform: scale(1.2);
 }

@@ -1,12 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react'
 
-export default function Console({ logs, onClose }) {
+export default function Console({ logs, onClear, onClose }) {
     const endRef = useRef(null)
     const [debugMode, setDebugMode] = useState(false)
+    const [searchTerm, setSearchTerm] = useState('')
 
     useEffect(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, [logs])
+
+    const filteredLogs = logs.filter(log =>
+        log.toLowerCase().includes(searchTerm.toLowerCase())
+    )
 
     return (
         <div
@@ -36,21 +41,79 @@ export default function Console({ logs, onClose }) {
                     alignItems: 'center',
                 }}
             >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#e2e8f0' }}>Console</span>
-                    <span
-                        style={{
-                            fontSize: '12px',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            background: '#334155',
-                            color: '#94a3b8',
-                        }}
-                    >
-                        {logs.length} events
-                    </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#e2e8f0' }}>Console</span>
+                        <span
+                            style={{
+                                fontSize: '12px',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                background: '#334155',
+                                color: '#94a3b8',
+                            }}
+                        >
+                            {filteredLogs.length} events
+                        </span>
+                    </div>
+
+                    {/* Search Bar */}
+                    <div style={{ position: 'relative' }}>
+                        <input
+                            type="text"
+                            placeholder="Filter logs..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                background: '#0f172a',
+                                border: '1px solid #334155',
+                                borderRadius: '4px',
+                                padding: '4px 8px',
+                                fontSize: '11px',
+                                color: '#e2e8f0',
+                                width: '180px',
+                                outline: 'none'
+                            }}
+                        />
+                        {searchTerm && (
+                            <span
+                                onClick={() => setSearchTerm('')}
+                                style={{
+                                    position: 'absolute',
+                                    right: '8px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    color: '#94a3b8',
+                                    cursor: 'pointer',
+                                    fontSize: '12px'
+                                }}
+                            >
+                                ×
+                            </span>
+                        )}
+                    </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <button
+                        onClick={onClear}
+                        style={{
+                            background: 'transparent',
+                            border: '1px solid #ef444450',
+                            color: '#ef4444',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            opacity: 0.8,
+                            transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.background = '#ef444410'}
+                        onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                    >
+                        🗑️ Clear
+                    </button>
                     <button
                         onClick={() => setDebugMode(!debugMode)}
                         style={{
@@ -93,10 +156,12 @@ export default function Console({ logs, onClose }) {
                     gap: '4px',
                 }}
             >
-                {logs.length === 0 && (
-                    <span style={{ color: '#475569', fontStyle: 'italic' }}>Ready to run...</span>
+                {filteredLogs.length === 0 && (
+                    <span style={{ color: '#475569', fontStyle: 'italic' }}>
+                        {searchTerm ? 'No matches found...' : 'Ready to run...'}
+                    </span>
                 )}
-                {logs.map((log, index) => (
+                {filteredLogs.map((log, index) => (
                     <div
                         key={index}
                         style={{

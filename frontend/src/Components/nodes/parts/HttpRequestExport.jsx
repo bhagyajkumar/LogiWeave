@@ -54,6 +54,24 @@ export default function HttpRequestExport({ data, onClose }) {
                 py += `\n\nprint(response.status_code)\nprint(response.json())`
                 return py
 
+            case 'powershell':
+                let ps = `$params = @{\n  Uri = "${finalUrl}"\n  Method = "${method}"\n}`
+                if (Object.keys(headers).length > 0) {
+                    ps += `\n$params.Headers = @{`
+                    Object.entries(headers).forEach(([k, v]) => {
+                        ps += `\n  "${k}" = "${v}"`
+                    })
+                    ps += `\n}`
+                }
+                if (body && method !== 'GET') {
+                    ps += `\n$params.Body = '${body.replace(/'/g, "''")}'`
+                    if (headers['Content-Type'] === 'application/json') {
+                        ps += `\n$params.ContentType = "application/json"`
+                    }
+                }
+                ps += `\n\nInvoke-RestMethod @params`
+                return ps
+
             default: return ''
         }
     }
@@ -85,7 +103,7 @@ export default function HttpRequestExport({ data, onClose }) {
                 <button className="nodrag" onClick={onClose} style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: 20, cursor: 'pointer' }}>×</button>
             </div>
             <div style={{ display: 'flex', gap: 4, marginBottom: 12, background: '#1f2937', padding: 2, borderRadius: 6 }}>
-                {['curl', 'fetch', 'python'].map(f => (
+                {['curl', 'fetch', 'python', 'powershell'].map(f => (
                     <button
                         key={f}
                         className="nodrag"

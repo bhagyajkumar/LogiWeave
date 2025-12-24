@@ -86,6 +86,7 @@ export default function NodeOutputRow({
                     cursor: 'crosshair',
                     pointerEvents: 'all',
                 }}
+                title={`Output: ${output.type}`}
             />
         </div>
     )
